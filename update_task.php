@@ -1,75 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
 <?php
-    include 'db.php'; 
+session_start();
+include "db.php"; 
 
-    $query = $conn->prepare("SELECT * FROM tasks WHERE is_completed = 0");
-    $query->execute();
-    $tasks = $query->fetchAll();
+if ($_SERVER['REQUEST_METHOD'] == "POST") {
+    $taskName = ($_POST['task_name']); 
+    $taskId = ($_POST['task_id']);
+    $iduserLogin = $_SESSION['idUser'];
 
-    $query = $conn->prepare("SELECT * FROM tasks WHERE is_completed = 1");
-    $query->execute();
-    $completedTasks = $query->fetchAll();
+    if (!empty($taskName)) {
+        $query = $conn->prepare("UPDATE tasks SET task_name = :taskName WHERE id = :taskId AND idUser = :idUser");
+        $query->bindParam(":taskName", $taskName, PDO::PARAM_STR);
+        $query->bindParam(":taskId", $taskId, PDO::PARAM_INT);
+        $query->bindParam(":idUser", $iduserLogin, PDO::PARAM_INT);
+        try {
+            $query->execute();
+            header("Location: index.php"); 
+            exit();
+        } catch (Exception $e) {
+            echo "Something went wrong: " . $e->getMessage();
+        }
+    } else {
+        echo "Task name cannot be empty.";
+    }
+} else {
+    echo "Invalid request.";
+}
 ?>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Todo List</title>
-    <link rel="stylesheet" href="/style/style.css">
-</head>
-<body>
-    <aside>
-        <h1>Todo List</h1>
-        <ul>
-            <li><a href="#">New Task</a></li>
-        </ul>
-        <div>
-            <a href="/logout.php" style="color:white">Logout</a>
-        </div>
-    </aside>
-
-    <main>
-        <h2>New Task</h2>
-        <form action="add_task.php" method="POST">
-            <input type="text" name="addtask" placeholder="Enter a new task" required>
-            <button type="submit">Add Task</button>
-
-        </form>
-
-
-        <h3>Task Lists</h3>
-        <ul class="task-list">
-            <?php
-                if (!empty($tasks)) {
-                    foreach ($tasks as $task) {
-                        echo "<li>{$task['task_name']}
-                                <div>
-                                    <a href='complete_task.php?id={$task['id']}' class='complete'>Complete</a>
-                                    <a href='delete_task.php?id={$task['id']}' class='delete'>Delete</a>
-                                </div>
-                            </li>";
-                    }
-                } else {
-                    echo "<li>No tasks yet.</li>";
-                }
-            ?>
-        </ul>
-
-        <h3>Completed Tasks</h3>
-        <ul class="completed-tasks">
-            <?php
-            if (!empty($completedTasks)) {
-                foreach ($completedTasks as $task) {
-                    echo "<li><s>{$task['task_name']}</s>
-                            <a href='delete_task.php?id={$task['id']}' class='delete'>Delete</a>
-                        </li>";
-                }
-            } else {
-                echo "<li>No completed tasks yet.</li>";
-            }
-            ?>
-        </ul>
-
-    </main>
-</body>
-</html>
